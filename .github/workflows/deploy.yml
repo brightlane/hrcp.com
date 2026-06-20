@@ -28,27 +28,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Delete all old files (keep only build.py and workflow)
+      - name: Delete all old files (keep build.py, README.md and workflow)
         run: |
-          # Remove every tracked file except build.py and .github/
-          git ls-files | grep -vE '^(build\.py|\.github/)' | xargs git rm -f --ignore-unmatch
+          FILES=$(git ls-files | grep -vE '^(build\.py|README\.md|\.github/)' || true)
+          if [ -n "$FILES" ]; then
+            echo "$FILES" | xargs git rm -f --ignore-unmatch
+          else
+            echo "No files to remove"
+          fi
 
-          # Hard-delete anything untracked at root level
           find . -maxdepth 1 \
             ! -name '.' \
             ! -name 'build.py' \
+            ! -name 'README.md' \
             ! -name '.git' \
             ! -name '.github' \
             -exec rm -rf {} +
 
-          # Clean any previous output folder
           rm -rf output/
 
-          # Commit the purge so the repo is clean before building
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore: purge all old files before rebuild [skip ci]" || echo "Nothing to commit"
+          git commit -m "chore: purge old files before rebuild [skip ci]" || echo "Nothing to commit"
           git push || echo "Nothing to push"
 
       - name: Set up Python
